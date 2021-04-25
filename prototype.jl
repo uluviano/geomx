@@ -108,9 +108,33 @@ app.layout = html_div() do
             padding = "10px 5px",
         ),
     ),
+
+    data=[]
+    for status in patientState 
+    end
     html_div(
         children = [
-            dcc_graph(id = "crossfilter-indicator-scatter"),
+            dcc_graph(id = "basic-interactions", figure = Plot(
+                Yte[1,features[!, "disease_status"] .== patientState[1]],
+                Yte[2,features[!, "disease_status"] .== patientState[1]],
+                Layout(
+                    xaxis_type = xaxis_type == "Linear" ? "linear" : "log",
+                    xaxis_title = "pca_1",
+                    yaxis_title = "pca_2",
+                    yaxis_type = yaxis_type == "Linear" ? "linear" : "log",
+                    hovermode = "closest",
+                    height = 450,
+                ),
+                kind = "scatter",
+                mode = "markers",
+                marker_size = 15,
+                marker_opacity = 0.5,
+                marker_line_width = 0.5,
+                marker_line_color = "white",
+            )
+        ]
+    ),
+
             dcc_slider(
                 id = "crossfilter-year-slider",
                 min = minimum(years),
@@ -145,6 +169,59 @@ app.layout = html_div() do
             ),
         ],
         style = (width = "49%", display = "inline-block"),
+    ),
+
+    html_div(
+        children = [
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Hover Data**
+
+                    Mouse over values in the graph.
+                    "),
+                    html_pre(id = "hover-data"),
+                ],
+            ),
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Click Data**
+
+                    Click on points in the graph.
+                    "),
+                    html_pre(id = "click-data"),
+                ],
+            ),
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Selection Data**
+
+                    Choose the lasso or rectangle tool in the graph's menu
+                    bar and then select points in the graph.
+
+                    Note that if `layout.clickmode = 'event+select'`, selection data also
+                    accumulates (or un-accumulates) selected data if you hold down the shift
+                    button while clicking.
+                    "),
+                    html_pre(id = "selected-data"),
+                ],
+            ),
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Zoom and Relayout Data**
+
+                    Click and drag on the graph to zoom or click on the zoom
+                    buttons in the graph's menu bar.
+                    Clicking on legend items will also fire
+                    this event.
+                    "),
+                    html_pre(id = "relayout-data"),
+                ],
+            ),
+        ],
     )
 end
 
@@ -152,33 +229,33 @@ callback!(
     app,
     Output("crossfilter-indicator-scatter", "figure"),
     Input("crossfilter-xaxis-column", "value"),
-    Input("crossfilter-yaxis-column", "value"),
-    Input("crossfilter-xaxis-type", "value"),
-    Input("crossfilter-yaxis-type", "value"),
-    Input("crossfilter-year-slider", "value"),
-) do xaxis_column_name, yaxis_column_name, xaxis_type, yaxis_type, year_slider_value
+    #Input("crossfilter-yaxis-column", "value"),
+    #Input("crossfilter-xaxis-type", "value"),
+    #Input("crossfilter-yaxis-type", "value"),
+    #Input("crossfilter-year-slider", "value"),
+) do xaxis_column_name
 
-    df6f = df6[df6.year .== year_slider_value, :]
+    patientState = ["DKD", "normal"]
 
     return Plot(
-        df6f[df6f[!, Symbol("Indicator Name")] .== xaxis_column_name, :Value],
-        df6f[df6f[!, Symbol("Indicator Name")] .== yaxis_column_name, :Value],
+        Yte[1,features[!, "disease_status"] .== patientState[1]],
+        Yte[2,features[!, "disease_status"] .== patientState[1]],
         Layout(
-            xaxis_type = xaxis_type == "Linear" ? "linear" : "log",
-            xaxis_title = xaxis_column_name,
-            yaxis_title = yaxis_column_name,
-            yaxis_type = yaxis_type == "Linear" ? "linear" : "log",
+            xaxis_type ="linear" ,
+            xaxis_title = "pca_1",
+            yaxis_title = "pca_2",
+            yaxis_type = "linear" ,
             hovermode = "closest",
             height = 450,
         ),
         kind = "scatter",
-        text = df6f[
-            df6f[!, Symbol("Indicator Name")] .== yaxis_column_name,
-            Symbol("Country Name"),
+        text = features[
+            features[!, "disease_status"] .== patientState[1],
+            Symbol("Country Name")
         ],
-        customdata = df6f[
-            df6f[!, Symbol("Indicator Name")] .== yaxis_column_name,
-            Symbol("Country Name"),
+        customdata = features[
+            features[!, "disease_status"] .== patientState[1],
+            Symbol("Country Name")
         ],
         mode = "markers",
         marker_size = 15,

@@ -132,7 +132,6 @@ app.layout = html_div() do
                 marker_line_width = 0.5,
                 marker_line_color = "white",
             )
-        ]
     ),
 
             dcc_slider(

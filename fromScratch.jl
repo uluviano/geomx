@@ -8,7 +8,8 @@ app = dash()
 Yte=Matrix(CSV.read("PCA_matrix.txt",DataFrame))
 #PCM = DataFrame(CSV.File("data/Kidney_Q3Norm_TargetCountMatrix.txt"))
 features = DataFrame(CSV.File("data/Kidney_Sample_Annotations.txt"))
-
+structuresDict = Dict("abnormal"=>"Glom (Abnormal)","healthy"=>"Glom (Healthy)"," PanCK" => "Tub. Distal", " neg" => "Tub. Proximal")
+comprehensiveStates = [structuresDict[ismissing(row.pathology) ? split(row["SegmentDisplayName"],"|")[3] : row.pathology] for row in eachrow(features)]
 
 function generate_table(dataframe, max_rows = 10)
     html_table([
@@ -34,9 +35,10 @@ app.layout = html_div() do
                 id = "crossfilter-roi-type",
                 options = [
                     (label = i, value = i)
-                    for i in available_indicators
+                    for i in values(structuresDict)
                 ],
-                value = "region",
+                multi = true,
+                value = first(values(structuresDict)),
             ),
             dcc_graph(
                 id = "graph-1",
@@ -56,6 +58,25 @@ app.layout = html_div() do
             ),
 
             dcc_dropdown(
+                id = "stage",
+                options = [
+                    (label = i, value = i)
+                    for i in unique(features.SegmentDisplayName)
+                ],
+                multi = true,
+                value =features[1,"SegmentDisplayName"],
+            ),
+            html_button(id = "g1", children = "Make group 1", n_clicks = 0),
+            html_button(id = "g2", children = "Make group 2", n_clicks = 0),
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Group 1**
+                    "),
+                    html_pre(id = "g1-header"),
+                ],
+            ),
+            dcc_dropdown(
                 id = "group1",
                 options = [
                     (label = i, value = i)
@@ -67,17 +88,19 @@ app.layout = html_div() do
             html_div(
                 children = [
                     dcc_markdown("
-                    **Selection Data**
-
-                    Choose the lasso or rectangle tool in the graph's menu
-                    bar and then select points in the graph.
-
-                    Note that if `layout.clickmode = 'event+select'`, selection data also
-                    accumulates (or un-accumulates) selected data if you hold down the shift
-                    button while clicking.
+                    **Group 2**
                     "),
-                    html_pre(id = "selected-data"),
+                    html_pre(id = "g2-header"),
                 ],
+            ),
+            dcc_dropdown(
+                id = "group2",
+                options = [
+                    (label = i, value = i)
+                    for i in unique(features.SegmentDisplayName)
+                ],
+                multi = true,
+                value =features[1,"SegmentDisplayName"],
             ),
         ]
     )
@@ -91,13 +114,11 @@ callback!(
     # Input("crossfilter-xaxis-type", "value"),
     # Input("crossfilter-yaxis-type", "value"),
     # Input("crossfilter-year-slider", "value"),
-) do roi_type
+) do roiList
 
     # df6f = df6[df6.year .== year_slider_value, :]
 
-    selector = roi_type
-    statusList = unique(features[!,selector])
-    plotData = [    ( x = Yte[1, features[!,selector] .== status], y = Yte[2, features[!,selector] .== status],  type = "scatter", name = status, mode = "markers",) for status in statusList]
+    plotData = [    ( x = Yte[1, comprehensiveStates .== status], y = Yte[2, comprehensiveStates .== status],  type = "scatter", name = status, mode = "markers", text = features[comprehensiveStates .== status,"SegmentDisplayName"]) for status in roiList]
 
     return (
         data = plotData,
@@ -124,7 +145,7 @@ callback!(
 
     selector = "SlideName"
     #this list should be changed by the checkboxes
-    plotData = [    ( x = Yte[1, features[!,selector] .== status], y = Yte[2, features[!,selector] .== status],  type = "scatter", name = status, mode = "markers",) for status in patientList]
+    plotData = [    ( x = Yte[1, features[!,selector] .== status], y = Yte[2, features[!,selector] .== status],  type = "scatter", name = status, mode = "markers", text = comprehensiveStates[features[!,selector] .== status]) for status in patientList]
 
     return (
         data = plotData,
@@ -138,7 +159,7 @@ end
 
 callback!(
     app,
-    Output("group1", "value"),
+    Output("stage", "value"),
     Input("graph-1", "selectedData"),
 ) do selected_data
     selectedpoints = 1:2
@@ -147,6 +168,25 @@ callback!(
     end
     #print(features[selectedpoints, "SegmentDisplayName"])
     return features[selectedpoints, "SegmentDisplayName"]
+end
+
+#buttons
+callback!(
+    app,
+    Output("group1", "value"),
+    Input("g1", "n_clicks"),
+    State("stage", "value"),
+) do clicks, input_1
+    return input_1
+end
+
+callback!(
+    app,
+    Output("group2", "value"),
+    Input("g2", "n_clicks"),
+    State("stage", "value"),
+) do clicks, input_1
+    return input_1
 end
 
 run_server(app, "0.0.0.0", debug=true)

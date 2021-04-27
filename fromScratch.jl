@@ -40,6 +40,7 @@ app.layout = html_div() do
                 multi = true,
                 value = first(values(structuresDict)),
             ),
+            ##Add checkbox for healthy vs DKD
             dcc_graph(
                 id = "graph-1",
             ),
@@ -118,7 +119,7 @@ callback!(
 
     # df6f = df6[df6.year .== year_slider_value, :]
 
-    plotData = [    ( x = Yte[1, comprehensiveStates .== status], y = Yte[2, comprehensiveStates .== status],  type = "scatter", name = status, mode = "markers", text = features[comprehensiveStates .== status,"SegmentDisplayName"]) for status in roiList]
+    plotData = [    ( x = Yte[1, comprehensiveStates .== status], y = Yte[2, comprehensiveStates .== status],  type = "scatter", name = status, mode = "markers", text = features[comprehensiveStates .== status,"SlideName"], customdata = features[comprehensiveStates .== status,"SegmentDisplayName"]) for status in roiList]
 
     return (
         data = plotData,
@@ -135,17 +136,15 @@ callback!(
     app,
     Output("graph-2", "figure"),
     Input("crossfilter-patient", "value"),
-    # Input("crossfilter-yaxis-column", "value"),
-    # Input("crossfilter-xaxis-type", "value"),
-    # Input("crossfilter-yaxis-type", "value"),
-    # Input("crossfilter-year-slider", "value"),
-) do patientList
+    Input("stage", "value"),
+) do patientList, selected_data
 
     # df6f = df6[df6.year .== year_slider_value, :]
-
+    
+    sdList = [x in selected_data for x in features[!,"SegmentDisplayName"]]
     selector = "SlideName"
     #this list should be changed by the checkboxes
-    plotData = [    ( x = Yte[1, features[!,selector] .== status], y = Yte[2, features[!,selector] .== status],  type = "scatter", name = status, mode = "markers", text = comprehensiveStates[features[!,selector] .== status]) for status in patientList]
+    plotData = [    ( x = Yte[1, (features[!,selector] .== status ) .& sdList ], y = Yte[2, (features[!,selector] .== status) .& sdList],  type = "scatter", name = status, mode = "markers", text = comprehensiveStates[(features[!,selector] .== status) .& sdList]) for status in patientList if any((features[!,selector] .== status) .& sdList)]
 
     return (
         data = plotData,
@@ -164,10 +163,12 @@ callback!(
 ) do selected_data
     selectedpoints = 1:2
     if selected_data != nothing
-        selectedpoints = [p[:pointIndex] + 1 for p in selected_data.points]
+        selectedpoints = [p[:customdata] for p in selected_data.points]
+        #print(selectedpoints)
     end
     #print(features[selectedpoints, "SegmentDisplayName"])
-    return features[selectedpoints, "SegmentDisplayName"]
+    #return features[selectedpoints, "SegmentDisplayName"]
+    return selectedpoints
 end
 
 #buttons

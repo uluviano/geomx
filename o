@@ -1,0 +1,88 @@
+o
+
+    html_div(
+        children = [
+        ]
+    ),
+
+    dcc_graph(id = "basic-interactions", figure = (
+        #You could use some nice list comprehensions here
+        data = [
+            (
+                x = Yte[1,healthy],
+                y = Yte[2,healthy],
+                name = "(Ctrl)",
+                mode = "markers",
+                text = segmentDisplayNames[ healthy,:] ,  
+                customdata = segmentDisplayNames[ healthy,:],
+               
+                marker = (size = 12,)
+            ),
+            (
+                x = Yte[1,.!healthy],
+                y = Yte[2,.!healthy],
+                name = "(DKD)",
+                mode = "markers",
+                text = segmentDisplayNames[ .!healthy, :] ,  
+                customdata = segmentDisplayNames[ .!healthy,:],
+               
+                marker = (size = 12,)
+            )
+        ], 
+         layout = (clickmode = "event+select",)
+    )),
+
+    html_div(
+        children = [
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Hover Data**
+
+                    Mouse over values in the graph.
+                    "),
+                    html_pre(id = "hover-data"),
+                ],
+            ),
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Click Data**
+
+                    Click on points in the graph.
+                    "),
+                    html_pre(id = "click-data"),
+                ],
+            ),
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Selection Data**
+
+                    Choose the lasso or rectangle tool in the graph's menu
+                    bar and then select points in the graph.
+
+                    Note that if `layout.clickmode = 'event+select'`, selection data also
+                    accumulates (or un-accumulates) selected data if you hold down the shift
+                    button while clicking.
+                    "),
+                    html_pre(id = "selected-data"),
+                ],
+            ),
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **Zoom and Relayout Data**
+
+                    Click and drag on the graph to zoom or click on the zoom
+                    buttons in the graph's menu bar.
+                    Clicking on legend items will also fire
+                    this event.
+                    "),
+                    html_pre(id = "relayout-data"),
+                ],
+            ),
+        ],
+    )
+
+end

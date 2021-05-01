@@ -6,10 +6,12 @@ using CSV
 app = dash()
 
 Yte=Matrix(CSV.read("PCA_matrix.txt",DataFrame))
-#PCM = DataFrame(CSV.File("data/Kidney_Q3Norm_TargetCountMatrix.txt"))
+PCM = DataFrame(CSV.File("data/Kidney_Q3Norm_TargetCountMatrix.txt"))
 features = DataFrame(CSV.File("data/Kidney_Sample_Annotations.txt"))
 structuresDict = Dict("abnormal"=>"Glom (Abnormal)","healthy"=>"Glom (Healthy)"," PanCK" => "Tub. Distal", " neg" => "Tub. Proximal")
 comprehensiveStates = [structuresDict[ismissing(row.pathology) ? split(row["SegmentDisplayName"],"|")[3] : row.pathology] for row in eachrow(features)]
+genes = PCM.TargetName
+insertcols!(features,"states"=>comprehensiveStates)
 
 function generate_table(dataframe, max_rows = 10)
     html_table([
@@ -23,8 +25,7 @@ end
 
 app = dash()
 
-available_indicators = ["disease_status","region"#,"pathology"]
-]
+#available_indicators = ["disease_status","region","pathology"]]
 
 patients = unique(features.SlideName)
 
@@ -41,6 +42,7 @@ app.layout = html_div() do
                 value = first(values(structuresDict)),
             ),
             ##Add checkbox for healthy vs DKD
+            ##Sync to patients in crossfilter-patient
             dcc_graph(
                 id = "graph-1",
             ),
@@ -103,6 +105,36 @@ app.layout = html_div() do
                 multi = true,
                 value =features[1,"SegmentDisplayName"],
             ),
+            #Group analysis
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **BubblePlot**
+                    "),
+                    html_pre(id = "bubble-header"),
+                ],
+            ),
+            #restrict to patients present in group1 intersection group2
+            dcc_dropdown(
+                id = "patientsBubble",
+                options = [
+                    (label = i, value = i)
+                    for i in patients
+                ],
+                value =patients[1],
+            ),
+            dcc_dropdown(
+                id = "geneBubble",
+                options = [
+                    (label = i, value = i)
+                    for i in genes
+                ],
+                value = genes[1],
+            ),
+
+            dcc_graph(
+                id = "bubblePlot1",
+            ),
         ]
     )
 end
@@ -111,10 +143,6 @@ callback!(
     app,
     Output("graph-1", "figure"),
     Input("crossfilter-roi-type", "value"),
-    # Input("crossfilter-yaxis-column", "value"),
-    # Input("crossfilter-xaxis-type", "value"),
-    # Input("crossfilter-yaxis-type", "value"),
-    # Input("crossfilter-year-slider", "value"),
 ) do roiList
 
     # df6f = df6[df6.year .== year_slider_value, :]
@@ -188,6 +216,42 @@ callback!(
     State("stage", "value"),
 ) do clicks, input_1
     return input_1
+end
+
+callback!(
+    app,
+    Output("bubblePlot1", "figure"),
+    Input("patientsBubble", "value"),
+    Input("geneBubble", "value"),
+    Input("group1", "value"),
+    Input("group2", "value"),
+) do patient, selectedGene, group1,group2
+patientRegions= features[!,"SlideName"].==patient
+points = features[patientRegions,["SlideName", "SegmentDisplayName", "RoiReportX", "RoiReportY", "states"]]
+groupListsInPatients= [ 
+    [ any(x .== group1) for x in points[!,"SegmentDisplayName"]], 
+    [ any(x .== group2) for x in points[!,"SegmentDisplayName"]] 
+    ]
+#print(groupListsInPatients)
+normalizedCounts =Any[ ]
+
+maxCounts = maximum(Vector(PCM[PCM[!,"TargetName" ] .== selectedGene,points[!,:].SegmentDisplayName][1,:]))
+for group in groupListsInPatients
+    tmp = Vector(PCM[PCM[!,"TargetName" ] .== selectedGene,points[group,:].SegmentDisplayName][1,:])
+    #print(tmp)
+    push!(normalizedCounts,50 .* tmp./maxCounts) 
+end
+#Plots.scatter(points.ROICoordinateX,points.ROICoordinateY,color=1,label="Tubules")
+#Plots.title!(patient)
+#Plots.scatter!(points[gloms,:].ROICoordinateX,points[gloms,:].ROICoordinateY,color=2,label="Gloms")
+#print(normalizedCounts)
+
+####PENDING#####
+#text = structuresDict
+    plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "square", color = 1,), text = points[group,:].SlideName, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients)]
+
+    return ( data = plotData, layout = ( title = "Regions in Slide", xaxis_title = "x", yaxis_title = "y",),)
+
 end
 
 run_server(app, "0.0.0.0", debug=true)

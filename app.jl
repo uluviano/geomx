@@ -305,7 +305,7 @@ callback!(
 
 	# if no selection return empty plot
 	if roiList == nothing
-        return (data = [], layout = (title = "By Structure", xaxis_title = "", yaxis_title = "",))
+        return (data = [], layout = (title = "By Structure", xaxis_title = "", yaxis_title = "", clickmode = "event+select",))
     end
 
     # diseaseFilter = true
@@ -331,6 +331,7 @@ callback!(
             title = "By Structure",
             xaxis = (title = "pca_1",),
             yaxis = (title = "pca_2",),
+            clickmode = "event+select",
         ),
     )
 

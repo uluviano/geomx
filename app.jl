@@ -220,9 +220,9 @@ app.layout = html_div() do
                 id = "cellBubble",
                 options = [
                     (label = i, value = i)
-                    for i in cells
+                    for i in cellGroups
                 ],
-                value = cells[1],
+                value = cellGroups[1],
             ),
 
             dcc_graph(
@@ -419,6 +419,7 @@ callback!(
     State("group1", "value"),
     State("group2", "value"),
 ) do clicks, input_1, input_2
+    clicks == 0 && return " "
     CSV.write("matrix_DKD_normal.txt",rename(PCM,names(PCM)[1] => "gene")[!,vcat(["gene"], input_1, input_2)], delim='\t')
     n1 = length(input_1)
     n2 = length(input_2)
@@ -505,10 +506,10 @@ groupListsInPatients= [
 #print(any(any.(groupListsInPatients)))
 normalizedCounts =Any[ ]
 
-maxCounts = maximum(Vector(CDC[CDC[!,"Alias" ] .== selectedCell,points[!,:].Sample_ID][1,:]))
+maxCounts = maximum(Vector(newCDC[newCDC[!,"cellGroup" ] .== selectedCell,points[!,:].Sample_ID][1,:]))
 for group in groupListsInPatients
     if any(group)
-        tmp = Vector(CDC[CDC[!,"Alias" ] .== selectedCell,points[group,:].Sample_ID][1,:])
+        tmp = Vector(newCDC[newCDC[!,"cellGroup" ] .== selectedCell,points[group,:].Sample_ID][1,:])
         #print(tmp)
         push!(normalizedCounts,50 .* tmp./maxCounts) 
     end
@@ -537,10 +538,14 @@ group=  [ any(x .== group1) for x in points[!,"SegmentDisplayName"]]
 #print(groupListsInPatients)
 
 
-    plotData = [    ( x =points[group,:].barID, y = Vector(newCDC[newCDC[!,"cellGroup" ] .== cell,points[group,:].Sample_ID][1,:]),  type = "bar", name = cell, text = cell, customdata = cell ) for cell in cellGroups  ]
+    plotData = [    ( x =points[group,:].SegmentDisplayName, y = Vector(newCDC[newCDC[!,"cellGroup" ] .== cell,points[group,:].Sample_ID][1,:]),  type = "bar", name = cell, text = cell, customdata = cell ) for cell in cellGroups  ]
     
 
-    return ( data = plotData, layout = ( title = "baar",barmode = "stack",),)
+    return ( data = plotData, layout = ( title = "Group Two",barmode = "stack",
+            xaxis = (title = "ROIs",),
+            yaxis = (title = "CD Cell Fraction",),
+    )
+    )
 
 end
 
@@ -558,10 +563,13 @@ group=  [ any(x .== group1) for x in points[!,"SegmentDisplayName"]]
 #print(groupListsInPatients)
 
 
-    plotData = [    ( x =points[group,:].barID, y = Vector(newCDC[newCDC[!,"cellGroup" ] .== cell,points[group,:].Sample_ID][1,:]),  type = "bar", name = cell, text = cell, customdata = cell ) for cell in cellGroups  ]
+    plotData = [    ( x =points[group,:].SegmentDisplayName, y = Vector(newCDC[newCDC[!,"cellGroup" ] .== cell,points[group,:].Sample_ID][1,:]),  type = "bar", name = cell, text = cell, customdata = cell ) for cell in cellGroups  ]
     
 
-    return ( data = plotData, layout = ( title = "Group Two",barmode = "stack", showlegend = false),)
+    return ( data = plotData, layout = ( title = "Group Two",barmode = "stack",
+            xaxis = (title = "ROIs",),
+            yaxis = (title = "CD Cell Fraction",),
+    showlegend = false),)
 
 end
 

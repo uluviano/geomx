@@ -71,7 +71,8 @@ dev.off()
 
 #VolcanoPlot
 svg("VolcanoPlot.svg",width=15,height=8)    		#to open in high resolution the plot, the problem is that 'width' and 'height' change on the basis of how much is big the plot!
-EnhancedVolcano(fit_contrast1, lab = rownames(fit_contrast1), x = "coefficients", y = "p.value", title = 'Normal-vs-DKD Glomeruli', pCutoff = 10e-10, FCcutoff = 20, pointSize = 1.0, labSize = 3.0) #also these sizes may changes...
+#EnhancedVolcano(fit_contrast1, lab = rownames(fit_contrast1), x = "coefficients", y = "p.value", title = 'Normal-vs-DKD Glomeruli', pCutoff = 10e-10, FCcutoff = 1, pointSize = 1.0, labSize = 3.0) #also these sizes may changes...
+volcanoplot(fit_contrast1, style = "p-value", highlight = 10, names = rownames(fit_contrast1), hl.col="red", xlab = "Log2 Fold Change", ylab = NULL, pch=1, cex=0.5)
 #The user may choose 'pCutoff' and 'FCcutoff' 
 dev.off()
 

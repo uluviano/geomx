@@ -1,3 +1,14 @@
+#Pkg.add("DataFrames")
+ #Pkg.add("Dash")
+ #Pkg.add("DashHtmlComponents")
+ #Pkg.add("DashCoreComponents")
+  #Pkg.add("UrlDownload")
+   #Pkg.add("PlotlyJS")
+    #Pkg.add("JSON3")
+#Pkg.add("Statistics")
+#Pkg.add("LinearAlgebra")
+#Pkg.add("CSV")
+#Pkg.add("RCall")
 using DataFrames, Dash, DashHtmlComponents, DashCoreComponents, UrlDownload, PlotlyJS, JSON3
 using Statistics
 using LinearAlgebra
@@ -5,12 +16,16 @@ using CSV
 
 app = dash()
 
+features = DataFrame(CSV.File("data/Kidney_Sample_Annotations.txt"))
 Yte=Matrix(CSV.read("PCA_matrix.txt",DataFrame))
 PCM = DataFrame(CSV.File("data/Kidney_Q3Norm_TargetCountMatrix.txt"))
-features = DataFrame(CSV.File("data/Kidney_Sample_Annotations.txt"))
+CDC = DataFrame(CSV.File("data/Kidney_Spatial_Decon.txt"))
+rename!(CDC, names(CDC)[2:end] .=> features.Sample_ID)
+
 structuresDict = Dict("abnormal"=>"Glom (Abnormal)","healthy"=>"Glom (Healthy)"," PanCK" => "Tub. Distal", " neg" => "Tub. Proximal")
 comprehensiveStates = [structuresDict[ismissing(row.pathology) ? split(row["SegmentDisplayName"],"|")[3] : row.pathology] for row in eachrow(features)]
 genes = PCM.TargetName
+cells = CDC.Alias
 insertcols!(features,"states"=>comprehensiveStates)
 
 function generate_table(dataframe, max_rows = 10)
@@ -135,6 +150,22 @@ app.layout = html_div() do
             dcc_graph(
                 id = "bubblePlot1",
             ),
+            dcc_dropdown(
+                id = "cellBubble",
+                options = [
+                    (label = i, value = i)
+                    for i in cells
+                ],
+                value = cells[1],
+            ),
+
+            dcc_graph(
+                id = "bubblePlot2",
+            ),
+
+            dcc_graph(
+                id = "bar",
+            ),
         ]
     )
 end
@@ -153,7 +184,7 @@ callback!(
         data = plotData,
         layout = (
             title = "By Structure",
-            xaxis_title = "pca_1",
+            xaxis= (title = "pca_1", ),
             yaxis_title = "pca_2",
         ),
     )
@@ -235,7 +266,7 @@ groupListsInPatients= [
 #print(groupListsInPatients)
 normalizedCounts =Any[ ]
 
-maxCounts = maximum(Vector(PCM[PCM[!,"TargetName" ] .== selectedGene,points[!,:].SegmentDisplayName][1,:]))
+maxCounts = mean(Vector(PCM[PCM[!,"TargetName" ] .== selectedGene,points[!,:].SegmentDisplayName][1,:]))
 for group in groupListsInPatients
     tmp = Vector(PCM[PCM[!,"TargetName" ] .== selectedGene,points[group,:].SegmentDisplayName][1,:])
     #print(tmp)
@@ -248,10 +279,68 @@ end
 
 ####PENDING#####
 #text = structuresDict
-    plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "square", color = 1,), text = points[group,:].SlideName, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients)]
+    plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "circle", ), text = points[group,:].states, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients)]
 
     return ( data = plotData, layout = ( title = "Regions in Slide", xaxis_title = "x", yaxis_title = "y",),)
 
 end
 
+
+callback!(
+    app,
+    Output("bubblePlot2", "figure"),
+    Input("patientsBubble", "value"),
+    Input("cellBubble", "value"),
+    Input("group1", "value"),
+    Input("group2", "value"),
+) do patient, selectedCell, group1,group2
+patientRegions= features[!,"SlideName"].==patient
+points = features[patientRegions,["SlideName", "SegmentDisplayName", "RoiReportX", "RoiReportY", "states","Sample_ID"]]
+groupListsInPatients= [ 
+    [ any(x .== group1) for x in points[!,"SegmentDisplayName"]], 
+    [ any(x .== group2) for x in points[!,"SegmentDisplayName"]] 
+    ]
+#print(groupListsInPatients)
+normalizedCounts =Any[ ]
+
+maxCounts = maximum(Vector(CDC[CDC[!,"Alias" ] .== selectedCell,points[!,:].Sample_ID][1,:]))
+for group in groupListsInPatients
+    tmp = Vector(CDC[CDC[!,"Alias" ] .== selectedCell,points[group,:].Sample_ID][1,:])
+    #print(tmp)
+    push!(normalizedCounts,50 .* tmp./maxCounts) 
+end
+#Plots.scatter(points.ROICoordinateX,points.ROICoordinateY,color=1,label="Tubules")
+#Plots.title!(patient)
+#Plots.scatter!(points[gloms,:].ROICoordinateX,points[gloms,:].ROICoordinateY,color=2,label="Gloms")
+#print(normalizedCounts)
+
+####PENDING#####
+#text = structuresDict
+    plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "circle", ), text = points[group,:].states, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients)]
+
+    return ( data = plotData, layout = ( title = "Regions in Slide", xaxis_title = "x", yaxis_title = "y",),)
+
+end
+
+callback!(
+    app,
+    Output("bar", "figure"),
+    Input("patientsBubble", "value"),
+    #Input("cellBubble", "value"),
+    Input("group1", "value"),
+    #Input("group2", "value"),
+) do patient,  group1
+patientRegions= features[!,"SlideName"].==patient
+points = features[patientRegions,["SlideName", "SegmentDisplayName", "RoiReportX", "RoiReportY", "states","Sample_ID"]]
+group=  [ any(x .== group1) for x in points[!,"SegmentDisplayName"]] 
+    
+#print(groupListsInPatients)
+
+
+    plotData = [    ( x =points[group,:].SegmentDisplayName, y = Vector(CDC[CDC[!,"Alias" ] .== cell,points[group,:].Sample_ID][1,:]),  type = "bar", name = cell, text = cell, customdata = cell ) for cell in cells  ]
+    
+
+    return ( data = plotData, layout = ( title = "baar",barmode = "stack",),)
+
+end
 run_server(app, "0.0.0.0", debug=true)

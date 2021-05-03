@@ -1,0 +1,5 @@
+sample	normal	DKD
+disease3_scan | 007 | Geometric Segment	1	0
+disease3_scan | 008 | Geometric Segment	1	0
+disease3_scan | 009 | Geometric Segment	0	1
+disease3_scan | 010 | Geometric Segment	0	1

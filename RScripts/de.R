@@ -18,11 +18,11 @@ library(dplyr)
 
 #HERE EXAMPLE OF COMPARISON AMONG DKD AND NORMAL GLOMERULI
 
-matrix_data <- read.delim("matrix_DKD_normal.txt", header = TRUE, sep = "\t", quote = "\"", dec = ".", row.names = 1)
+matrix_data <- read.delim("matrix_group2_group1.txt", header = TRUE, sep = "\t", quote = "\"", dec = ".", row.names = 1)
 matrix_design <- read.delim("matrix_design_final.txt", header = TRUE, sep = "\t", quote = "\"", dec = ".", row.names = 1)
 
 #Create a Contrast matrix: Then, we must tell limma whom we are going to compare with whom.
-cont_matrix <- makeContrasts(normalvsDKD = normal-DKD, levels = matrix_design)   #levels means samples
+cont_matrix <- makeContrasts(group1vsgroup2 = group1-group2, levels = matrix_design)   #levels means samples
 
 #Fit the expression matrix to a linear model
 fit <- lmFit(matrix_data, matrix_design)
@@ -66,12 +66,12 @@ z <- c(z,"royalblue") }
 #heatmap
 svg("Heatmap.svg",width=15,height=30)		#to open in high resolution the plot, the problem is that 'width' and 'height' change on the basis of how much is big the plot!
 heatmap.2(map1, col=redgreen(75), key=TRUE, symkey=FALSE, density.info="none", cexRow=0.1, trace = "none", scale = "row",  margins=c(12,15), ColSideColors = z)
-legend(x="right", legend=c("DKD", "normal"), fill=c("red", "royalblue"))
+legend(x="right", legend=c("group2", "group1"), fill=c("red", "royalblue"))
 dev.off()
 
 #VolcanoPlot
 svg("VolcanoPlot.svg",width=15,height=8)    		#to open in high resolution the plot, the problem is that 'width' and 'height' change on the basis of how much is big the plot!
-#EnhancedVolcano(fit_contrast1, lab = rownames(fit_contrast1), x = "coefficients", y = "p.value", title = 'Normal-vs-DKD Glomeruli', pCutoff = 10e-10, FCcutoff = 1, pointSize = 1.0, labSize = 3.0) #also these sizes may changes...
+#EnhancedVolcano(fit_contrast1, lab = rownames(fit_contrast1), x = "coefficients", y = "p.value", title = 'Normal-vs-group2 Glomeruli', pCutoff = 10e-10, FCcutoff = 1, pointSize = 1.0, labSize = 3.0) #also these sizes may changes...
 volcanoplot(fit_contrast1, style = "p-value", highlight = 10, names = rownames(fit_contrast1), hl.col="red", xlab = "Log2 Fold Change", ylab = NULL, pch=1, cex=0.5)
 #The user may choose 'pCutoff' and 'FCcutoff' 
 dev.off()

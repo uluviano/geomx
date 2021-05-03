@@ -20,6 +20,9 @@ cellNew = DataFrame(CSV.File("RScripts/cell_new_final.txt"))
 
 Yte=Matrix(CSV.read("PCA_matrix_log2.txt",DataFrame))
 PCM = DataFrame(CSV.File("data/Kidney_Q3Norm_TargetCountMatrix.txt"))
+print(PCM[2,2])
+foreach(n -> PCM[!, n] = log2.(PCM[!, n]), names(PCM)[2:end])
+print(PCM[2,2])
 features = DataFrame(CSV.File("data/Kidney_Sample_Annotations.txt"))
 structuresDict = Dict("abnormal"=>"Glom (Abnormal)","healthy"=>"Glom (Healthy)"," PanCK" => "Tub. Distal", " neg" => "Tub. Proximal")
 comprehensiveStates = [structuresDict[ismissing(row.pathology) ? split(row["SegmentDisplayName"],"|")[3] : row.pathology] for row in eachrow(features)]
@@ -30,6 +33,8 @@ insertcols!(features,"states"=>comprehensiveStates)
 insertcols!(features, "barID" =>["$(row[1]) | $(row[2])" for row in eachrow( features[!,["ROILabel","states"]]) ])
 
 CellTypes = DataFrame(CSV.File("data/Cell_Types_for_Spatial_Decon.txt"))
+GO = DataFrame(CSV.File("data/Kidney_ssGSEA.txt"))
+rename!(GO, names(GO)[2:end] .=> features.Sample_ID)
 #group immune together
 CellTypes[end-15:end,9].="Immune"
 CDC = DataFrame(CSV.File("data/Kidney_Spatial_Decon.txt"))
@@ -420,27 +425,24 @@ callback!(
     State("group2", "value"),
 ) do clicks, input_1, input_2
     clicks == 0 && return " "
-    CSV.write("matrix_DKD_normal.txt",rename(PCM,names(PCM)[1] => "gene")[!,vcat(["gene"], input_1, input_2)], delim='\t')
+    CSV.write("matrix_group2_group1.txt",rename(PCM,names(PCM)[1] => "gene")[!,vcat(["gene"], input_1, input_2)], delim='\t')
     n1 = length(input_1)
     n2 = length(input_2)
     @rput n1
     @rput n2
-    CSV.write("matrix_Design_final.txt", DataFrame("sample" => vcat(input_1, input_2), "normal" => convert(Vector{UInt8},vcat(trues(n1),falses(n2))), "DKD" => convert(Vector{UInt8},vcat(falses(n1),trues(n2)))), delim = '\t')
+    CSV.write("matrix_Design_final.txt", DataFrame("sample" => vcat(input_1, input_2), "group1" => convert(Vector{UInt8},vcat(trues(n1),falses(n2))), "group2" => convert(Vector{UInt8},vcat(falses(n1),trues(n2)))), delim = '\t')
 groupListsInPatients= [ 
     [ any(x .== input_1) for x in features[!,"SegmentDisplayName"]], 
     [ any(x .== input_2) for x in features[!,"SegmentDisplayName"]] 
     ]
-    cnf1 = copy(cellNew[groupListsInPatients[1],:])
-    cnf1.Group .= "Group1"
-    cnf2 = copy(cellNew[groupListsInPatients[2],:])
-    cnf2.Group .= "Group2"
+
+    cnf1 = DataFrame((newCDC.cellGroup .=> [Vector(row) for row in eachrow( newCDC[!,features[groupListsInPatients[1],"Sample_ID"]])])... , "Group" => "Group1")
+    cnf2 = DataFrame((newCDC.cellGroup .=> [Vector(row) for row in eachrow( newCDC[!,features[groupListsInPatients[2],"Sample_ID"]])])... , "Group" => "Group2")
     CSV.write("cell_new_final.txt", vcat(cnf1,cnf2), delim = '\t')
 
-    gof1 = copy(genon[groupListsInPatients[1],:])
-    gof1.Group .= "Group1"
-    gof2 = copy(genon[groupListsInPatients[2],:])
-    gof2.Group .= "Group2"
-    CSV.write("GO_final.txt", vcat(cnf1,cnf2), delim = '\t')
+    gf1 = DataFrame((GO.Column1 .=> [Vector(row) for row in eachrow( GO[!,features[groupListsInPatients[1],"Sample_ID"]])])... , "Group" => "Group1")
+    gf2 = DataFrame((GO.Column1 .=> [Vector(row) for row in eachrow( GO[!,features[groupListsInPatients[2],"Sample_ID"]])])... , "Group" => "Group2")
+    CSV.write("GO_final.txt", vcat(gf1,gf2), delim = '\t')
 
     R"""
     source("RScripts/de.R")

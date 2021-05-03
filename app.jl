@@ -18,7 +18,7 @@ genon = DataFrame(CSV.File("RScripts/GO_final.txt"))
 cellNew = DataFrame(CSV.File("RScripts/cell_new_final.txt"))
 
 
-Yte=Matrix(CSV.read("PCA_matrix.txt",DataFrame))
+Yte=Matrix(CSV.read("PCA_matrix_log2.txt",DataFrame))
 PCM = DataFrame(CSV.File("data/Kidney_Q3Norm_TargetCountMatrix.txt"))
 features = DataFrame(CSV.File("data/Kidney_Sample_Annotations.txt"))
 structuresDict = Dict("abnormal"=>"Glom (Abnormal)","healthy"=>"Glom (Healthy)"," PanCK" => "Tub. Distal", " neg" => "Tub. Proximal")
@@ -30,6 +30,8 @@ insertcols!(features,"states"=>comprehensiveStates)
 insertcols!(features, "barID" =>["$(row[1]) | $(row[2])" for row in eachrow( features[!,["ROILabel","states"]]) ])
 
 CellTypes = DataFrame(CSV.File("data/Cell_Types_for_Spatial_Decon.txt"))
+#group immune together
+CellTypes[end-15:end,9].="Immune"
 CDC = DataFrame(CSV.File("data/Kidney_Spatial_Decon.txt"))
 rename!(CDC, names(CDC)[2:end] .=> features.Sample_ID)
 insertcols!(CDC,  "cellGroup" => [CellTypes[ CellTypes.Alias .== row[1],9][1] for row in eachrow(CDC)])
@@ -279,12 +281,12 @@ callback!(
     	return []
     end
     if button_id == "buttonDKD"
-    	patientList = union(patientList,patientsDKD)
-    	# patientList = patientsDKD
+    	#patientList = union(patientList,patientsDKD)
+    	 patientList = patientsDKD
     end
     if button_id == "buttonNormal"
-    	patientList = union(patientList,patientsNormal)
-    	# patientList = patientsNormal
+    	#patientList = union(patientList,patientsNormal)
+    	 patientList = patientsNormal
     end
 
     return patientList
@@ -460,14 +462,16 @@ groupListsInPatients= [
     [ any(x .== group1) for x in points[!,"SegmentDisplayName"]], 
     [ any(x .== group2) for x in points[!,"SegmentDisplayName"]] 
     ]
-#print(groupListsInPatients)
+#print(any(any.(groupListsInPatients)))
 normalizedCounts =Any[ ]
 
 maxCounts = mean(Vector(PCM[PCM[!,"TargetName" ] .== selectedGene,points[!,:].SegmentDisplayName][1,:]))
 for group in groupListsInPatients
-    tmp = Vector(PCM[PCM[!,"TargetName" ] .== selectedGene,points[group,:].SegmentDisplayName][1,:])
-    #print(tmp)
-    push!(normalizedCounts,50 .* tmp./maxCounts) 
+    if any(group)
+        tmp = Vector(PCM[PCM[!,"TargetName" ] .== selectedGene,points[group,:].SegmentDisplayName][1,:])
+        #print(tmp)
+        push!(normalizedCounts,50 .* tmp./maxCounts) 
+    end
 end
 #Plots.scatter(points.ROICoordinateX,points.ROICoordinateY,color=1,label="Tubules")
 #Plots.title!(patient)
@@ -476,7 +480,7 @@ end
 
 ####PENDING#####
 #text = structuresDict
-    plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "circle", ), text = points[group,:].states, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients)]
+    plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "circle", ), text = points[group,:].states, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients) if any(group)]
 
     return ( data = plotData, layout = ( title = "Regions in Slide", xaxis_title = "x", yaxis_title = "y",),)
 
@@ -497,23 +501,21 @@ groupListsInPatients= [
     [ any(x .== group1) for x in points[!,"SegmentDisplayName"]], 
     [ any(x .== group2) for x in points[!,"SegmentDisplayName"]] 
     ]
-#print(groupListsInPatients)
+#print(any(any.(groupListsInPatients)))
 normalizedCounts =Any[ ]
 
 maxCounts = maximum(Vector(CDC[CDC[!,"Alias" ] .== selectedCell,points[!,:].Sample_ID][1,:]))
 for group in groupListsInPatients
-    tmp = Vector(CDC[CDC[!,"Alias" ] .== selectedCell,points[group,:].Sample_ID][1,:])
-    #print(tmp)
-    push!(normalizedCounts,500 .* tmp./maxCounts) 
+    if any(group)
+        tmp = Vector(CDC[CDC[!,"Alias" ] .== selectedCell,points[group,:].Sample_ID][1,:])
+        #print(tmp)
+        push!(normalizedCounts,50 .* tmp./maxCounts) 
+    end
 end
-#Plots.scatter(points.ROICoordinateX,points.ROICoordinateY,color=1,label="Tubules")
-#Plots.title!(patient)
-#Plots.scatter!(points[gloms,:].ROICoordinateX,points[gloms,:].ROICoordinateY,color=2,label="Gloms")
-#print(normalizedCounts)
 
 ####PENDING#####
 #text = structuresDict
-    plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "circle", ), text = points[group,:].states, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients)]
+    plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "circle", ), text = points[group,:].states, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients) if any(group)]
 
     return ( data = plotData, layout = ( title = "Regions in Slide", xaxis_title = "x", yaxis_title = "y",),)
 
@@ -527,8 +529,8 @@ callback!(
     Input("group1", "value"),
     #Input("group2", "value"),
 ) do patient,  group1
-patientRegions= features[!,"SlideName"].==patient
-points = features[patientRegions,["SlideName", "SegmentDisplayName", "RoiReportX", "RoiReportY", "states","barID","Sample_ID"]]
+#patientRegions= features[!,"SlideName"].==patient
+points = features[!,["SlideName", "SegmentDisplayName", "RoiReportX", "RoiReportY", "states","barID","Sample_ID"]]
 group=  [ any(x .== group1) for x in points[!,"SegmentDisplayName"]] 
     
 #print(groupListsInPatients)
@@ -548,8 +550,8 @@ callback!(
     #Input("cellBubble", "value"),
     Input("group2", "value"),
 ) do patient,  group1
-patientRegions= features[!,"SlideName"].==patient
-points = features[patientRegions,["SlideName", "SegmentDisplayName", "RoiReportX", "RoiReportY", "states","barID","Sample_ID"]]
+#patientRegions= features[!,"SlideName"].==patient
+points = features[!,["SlideName", "SegmentDisplayName", "RoiReportX", "RoiReportY", "states","barID","Sample_ID"]]
 group=  [ any(x .== group1) for x in points[!,"SegmentDisplayName"]] 
     
 #print(groupListsInPatients)
@@ -558,7 +560,7 @@ group=  [ any(x .== group1) for x in points[!,"SegmentDisplayName"]]
     plotData = [    ( x =points[group,:].barID, y = Vector(newCDC[newCDC[!,"cellGroup" ] .== cell,points[group,:].Sample_ID][1,:]),  type = "bar", name = cell, text = cell, customdata = cell ) for cell in cellGroups  ]
     
 
-    return ( data = plotData, layout = ( title = "baar",barmode = "stack", showlegend = false),)
+    return ( data = plotData, layout = ( title = "Group Two",barmode = "stack", showlegend = false),)
 
 end
 

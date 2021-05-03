@@ -1,3 +1,17 @@
+require(methods)
+
+library(limma)
+library(EnhancedVolcano)
+library("gplots")
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(broom)
+library(AICcmodavg)
+library(dplyr)
+
+#n1<-83
+#n2<-66
 #Load "normalized_data_matrix" and the "design_matrix".
 #normalized_data_matrix: each column represents a sample (this is a unique file derived from the fusion of samples inside the two groups), and each row represents a detected gene.
 #design matrix: in our case each column represents a group (i.e. group1, group2), and each row corresponds to a sample in the normalized_data_matrix.

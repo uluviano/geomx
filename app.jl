@@ -80,6 +80,7 @@ app.layout = html_div() do
         		style = Dict("color" => "#0066cc", "textAlign" => "left"),
     		),
 		    dcc_markdown("## Data selection"),
+            html_div("Select data to plot:"),
         	html_div(
         		children = [
         		html_div(
@@ -114,8 +115,8 @@ app.layout = html_div() do
 
 	            ##Add checkbox for healthy vs DKD
 	            html_button(id = "buttonAll", children = "All", n_clicks = 0),
-	            html_button(id = "buttonDKD", children = "DKD", n_clicks = 0),
-	            html_button(id = "buttonNormal", children = "Normal", n_clicks = 0),
+	            html_button(id = "buttonDKD", children = "▲ - DKD", n_clicks = 0),
+	            html_button(id = "buttonNormal", children = "● - Normal", n_clicks = 0),
 	            html_button(id = "buttonClear", children = "Clear", n_clicks = 0),
 	            ],
 	            style = (borderBottom = "thin lightgrey solid", backgroundColor = "rgb(250, 250, 250)", padding = "10px 5px",),
@@ -140,7 +141,8 @@ app.layout = html_div() do
             ),
 
 
-
+            dcc_markdown("## Group selection"),
+            dcc_markdown("Select a region of interest from any of the plots above and store the information in a group."),
             dcc_dropdown(
                 id = "stage",
                 options = [
@@ -150,8 +152,8 @@ app.layout = html_div() do
                 multi = true,
                 value =features[1,"SegmentDisplayName"],
             ),
-            html_button(id = "g1", children = "Make group 1", n_clicks = 0),
-            html_button(id = "g2", children = "Make group 2", n_clicks = 0),
+            html_button(id = "g1", children = "Store in group 1", n_clicks = 0),
+            html_button(id = "g2", children = "Store in group 2", n_clicks = 0),
             html_div(
                 children = [
                     dcc_markdown("
@@ -186,10 +188,18 @@ app.layout = html_div() do
                 multi = true,
                 value =features[3:4,"SegmentDisplayName"],
             ),
+            html_div(
+                children = [
+                    dcc_markdown("
+                    **R - Analysis**
+                    Use the data from the selected groups (Gene expression, Cell Deconvolution, GESA)
+                    "),
+                    html_pre(id = "aaaa"),
+                ],
+            ),
+            html_div(id = "dummy", children = "e"),
 
-            html_div(id = "dummy", children = " e"),
-
-            html_button(id = "RRun", children = "Run R", n_clicks = 0),
+            html_button(id = "RRun", children = "Execute R Analysis", n_clicks = 0),
 
             #Group analysis
             html_div(
@@ -486,7 +496,7 @@ end
 #text = structuresDict
     plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "circle", ), text = points[group,:].states, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients) if any(group)]
 
-    return ( data = plotData, layout = ( title = "Regions in Slide", xaxis_title = "x", yaxis_title = "y",),)
+    return ( data = plotData, layout = ( title = "Gene Expression in Slide", xaxis_title = "x", yaxis_title = "y",),)
 
 end
 
@@ -521,7 +531,7 @@ end
 #text = structuresDict
     plotData = [    ( x =points[group,:].RoiReportX, y = points[group,:].RoiReportY,  type = "scatter", name = string(i), mode = "markers", marker = (size=normalizedCounts[i], symbol = "circle", ), text = points[group,:].states, customdata = points[group,:].SegmentDisplayName )  for(i,  group) in enumerate( groupListsInPatients) if any(group)]
 
-    return ( data = plotData, layout = ( title = "Regions in Slide", xaxis_title = "x", yaxis_title = "y",),)
+    return ( data = plotData, layout = ( title = "Cell Fraction in Slide", xaxis_title = "x", yaxis_title = "y",),)
 
 end
 
@@ -543,8 +553,8 @@ group=  [ any(x .== group1) for x in points[!,"SegmentDisplayName"]]
     plotData = [    ( x =points[group,:].SegmentDisplayName, y = Vector(newCDC[newCDC[!,"cellGroup" ] .== cell,points[group,:].Sample_ID][1,:]),  type = "bar", name = cell, text = cell, customdata = cell ) for cell in cellGroups  ]
     
 
-    return ( data = plotData, layout = ( title = "Group Two",barmode = "stack",
-            xaxis = (title = "ROIs",),
+    return ( data = plotData, layout = ( title = "Group 1 Cell Composition",barmode = "stack",
+            #xaxis = (title = "ROIs",),
             yaxis = (title = "CD Cell Fraction",),
     )
     )
@@ -568,8 +578,8 @@ group=  [ any(x .== group1) for x in points[!,"SegmentDisplayName"]]
     plotData = [    ( x =points[group,:].SegmentDisplayName, y = Vector(newCDC[newCDC[!,"cellGroup" ] .== cell,points[group,:].Sample_ID][1,:]),  type = "bar", name = cell, text = cell, customdata = cell ) for cell in cellGroups  ]
     
 
-    return ( data = plotData, layout = ( title = "Group Two",barmode = "stack",
-            xaxis = (title = "ROIs",),
+    return ( data = plotData, layout = ( title = "Group 2 Cell Composition",barmode = "stack",
+            #xaxis = (title = "ROIs",),
             yaxis = (title = "CD Cell Fraction",),
     showlegend = false),)
 

@@ -6,6 +6,7 @@ disease3_scan | 022 | Geometric Segment	1	0
 disease3_scan | 023 | Geometric Segment	1	0
 disease3_scan | 024 | Geometric Segment	1	0
 disease3_scan | 025 | Geometric Segment	1	0
+disease3_scan | 026 | Geometric Segment	1	0
 disease3_scan | 027 | Geometric Segment	1	0
 disease3_scan | 028 | Geometric Segment	1	0
 disease3_scan | 029 | Geometric Segment	1	0
@@ -25,6 +26,8 @@ disease3_scan | 042 | Geometric Segment	1	0
 disease3_scan | 043 | Geometric Segment	1	0
 disease3_scan | 044 | Geometric Segment	1	0
 disease3_scan | 045 | Geometric Segment	1	0
+disease3_scan | 046 | Geometric Segment	1	0
+disease3_scan | 047 | Geometric Segment	1	0
 disease3_scan | 048 | Geometric Segment	1	0
 disease3_scan | 049 | Geometric Segment	1	0
 disease3_scan | 050 | Geometric Segment	1	0

@@ -44,6 +44,7 @@ DE_table1 <- topTable(fit_contrast1, adjust="fdr", n=500)
 #print the table. Here the user could save this table.
 DE_table1
 
+write.csv(DE_table1, file = "DE_genes.txt", row.names = TRUE)
 #To prepare heatmap, you select rows/genes of "DE_table1" from "matrix_data".
 table1 <- matrix_data[row.names(DE_table1),]
 map1 <- data.matrix(table1)
